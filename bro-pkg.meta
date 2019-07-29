@@ -1,0 +1,5 @@
+[package]
+version = 1.0.0
+tags = known-hosts, known_hosts, dns 
+script_dir = scripts
+description = This script expands the base known-hosts policy to include reverse DNS queries and syncs it across all workers.
