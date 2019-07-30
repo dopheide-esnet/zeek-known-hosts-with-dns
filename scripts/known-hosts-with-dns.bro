@@ -26,8 +26,7 @@ export {
 		## The address that was detected originating or responding to a
 		## TCP connection.
 		host:    addr &log;
-
-		# DOP
+		## If DNS lookup fails we'll actually see "<???>"
 		name:	string &log &default="unknown";
 	};
 
@@ -35,7 +34,7 @@ export {
 	## When true, use a Broker data store, else use a regular Bro set
 	## with keys uniformly distributed over proxy nodes in cluster
 	## operation.
-#	const use_host_store = T &redef;
+	const use_host_store = T &redef;
 	
 	## The hosts whose existence should be logged and tracked.
 	## See :bro:type:`Host` for possible choices.
@@ -111,10 +110,24 @@ event Known::send_known(){
 	Known::stored_hosts = table();
 }
 
-event bro_init(){
+# Thanks Justin for this bit to help with the name transition:
+@ifndef(zeek_init)
+#Running on old bro that doesn't know about zeek events
+global zeek_init: event();
+event bro_init()
+{
+    event zeek_init();
+}
+@endif
+
+event zeek_init(){
+
+        Log::create_stream(Known::HOSTS_LOG, [$columns=HostsInfo, $ev=log_known_hosts, $path="known_hosts"]);
+
+        if ( ! Known::use_host_store )
+                return;
 
 	Known::host_store = Cluster::create_store(Known::host_store_name,T);
-	Log::create_stream(Known::HOSTS_LOG, [$columns=HostsInfo, $ev=log_known_hosts, $path="known_hosts"]);
 
 	@if ( ! Cluster::is_enabled() || Cluster::local_node_type() == Cluster::MANAGER )
 
@@ -160,22 +173,30 @@ event Known::host_found(info: HostsInfo){
 	# manager doesn't need it's own table after passing on the store in bro_init
 	#Known::hosts[info$host] = info$name;
 
-	# Add to the store and log
-	when ( local r = Broker::put_unique(Known::host_store$store, info$host,
-	                                    info$name, Known::host_store_expiry) ){
-		if ( r$status == Broker::SUCCESS ){
-			if ( r$result as bool ){
-				Log::write(Known::HOSTS_LOG, info);
-			}
-		}else{
-			Reporter::error(fmt("%s: data store put_unique failure",
-					Known::host_store_name));
-		}
-	}
-	timeout Known::host_store_timeout{
-		# Can't really tell if master store ended up inserting a key.
+	if ( ! Known::use_host_store){
+		Known::hosts[info$host] = info$name;
+		print(fmt("Test1 %s",info));
 		Log::write(Known::HOSTS_LOG, info);
-	}
+	}else{
+	# Add to the store and log
+		when ( local r = Broker::put_unique(Known::host_store$store, info$host,
+	                                    info$name, Known::host_store_expiry) ){
+			if ( r$status == Broker::SUCCESS ){
+				if ( r$result as bool ){
+print(fmt("Test2 %s",info));
+					Log::write(Known::HOSTS_LOG, info);
+				}
+			}else{
+				Reporter::error(fmt("%s: data store put_unique failure",
+					Known::host_store_name));
+			}
+		}
+		timeout Known::host_store_timeout{
+			# Can't really tell if master store ended up inserting a key.
+print(fmt("Test3 %s",info));
+			Log::write(Known::HOSTS_LOG, info);
+		}
+        }
 
 	@endif
 }
@@ -196,12 +217,13 @@ event connection_established(c: connection) &priority=5{
 	# existing known_hosts table
 			when ( local hostname = lookup_addr(host) ){
 				event Known::host_found([$ts = network_time(), $host = host, $name=hostname]);
-				@if ( Cluster::local_node_type() == Cluster::WORKER )
+				@if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
 					Broker::publish(Cluster::manager_topic,Known::host_found,[$ts = network_time(), $host = host, $name=hostname]);				
 				@endif
 			}timeout Known::dns_timeout{
+print("Test4 timeout");
 				event Known::host_found([$ts = network_time(), $host = host, $name="unknown"]);
-				@if ( Cluster::local_node_type() == Cluster::WORKER )
+				@if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
 					Broker::publish(Cluster::manager_topic,Known::host_found,[$ts = network_time(), $host = host, $name=hostname]);				
 				@endif
 			}
