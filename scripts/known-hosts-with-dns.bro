@@ -13,6 +13,16 @@
 @load base/utils/directions-and-hosts
 @load base/frameworks/cluster
 
+@ifndef(zeek_init)
+#Running on old bro that doesn't know about zeek events
+global zeek_init: event();
+event bro_init()
+{
+    print("Entering zeek_init from bro_init");
+    event zeek_init();
+}
+@endif
+
 module Known;
 
 export {
@@ -110,7 +120,7 @@ event Known::send_known(){
 	Known::stored_hosts = table();
 }
 
-event bro_init(){
+event zeek_init(){
 
         Log::create_stream(Known::HOSTS_LOG, [$columns=HostsInfo, $ev=log_known_hosts, $path="known_hosts"]);
 
