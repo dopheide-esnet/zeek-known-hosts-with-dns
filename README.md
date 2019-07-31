@@ -26,3 +26,7 @@ broctl print Known::hosts
 or
 zeekctl print Known::hosts
 
+Another thing to note is that it defaults to using a persistent Broker store
+that will be reloaded and sent to the workers at startup.
+
+
