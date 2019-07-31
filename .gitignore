@@ -7,4 +7,6 @@
 Thumbs.db
 *.password
 *~
-
+.btest.failed.dat
+.state
+.tmp

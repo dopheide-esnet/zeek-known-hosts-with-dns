@@ -39,7 +39,7 @@ export {
 	## The hosts whose existence should be logged and tracked.
 	## See :bro:type:`Host` for possible choices.
 	const host_tracking = LOCAL_HOSTS &redef;
-	
+
 	## Holds the set of all known hosts.  Keys in the store are addresses
 	## and their associated value will always be the "true" boolean.
 	global host_store: Cluster::StoreInfo;
@@ -110,17 +110,7 @@ event Known::send_known(){
 	Known::stored_hosts = table();
 }
 
-# Thanks Justin for this bit to help with the name transition:
-@ifndef(zeek_init)
-#Running on old bro that doesn't know about zeek events
-global zeek_init: event();
-event bro_init()
-{
-    event zeek_init();
-}
-@endif
-
-event zeek_init(){
+event bro_init(){
 
         Log::create_stream(Known::HOSTS_LOG, [$columns=HostsInfo, $ev=log_known_hosts, $path="known_hosts"]);
 
@@ -175,7 +165,6 @@ event Known::host_found(info: HostsInfo){
 
 	if ( ! Known::use_host_store){
 		Known::hosts[info$host] = info$name;
-		print(fmt("Test1 %s",info));
 		Log::write(Known::HOSTS_LOG, info);
 	}else{
 	# Add to the store and log
@@ -183,7 +172,6 @@ event Known::host_found(info: HostsInfo){
 	                                    info$name, Known::host_store_expiry) ){
 			if ( r$status == Broker::SUCCESS ){
 				if ( r$result as bool ){
-print(fmt("Test2 %s",info));
 					Log::write(Known::HOSTS_LOG, info);
 				}
 			}else{
@@ -193,7 +181,6 @@ print(fmt("Test2 %s",info));
 		}
 		timeout Known::host_store_timeout{
 			# Can't really tell if master store ended up inserting a key.
-print(fmt("Test3 %s",info));
 			Log::write(Known::HOSTS_LOG, info);
 		}
         }
@@ -211,6 +198,7 @@ event connection_established(c: connection) &priority=5{
 	local id = c$id;
 
 	for ( host in set(id$orig_h, id$resp_h) ){
+
 		if ( addr_matches_host(host, host_tracking) && host !in Known::hosts){
 
 	# do the DNS lookup, this could get heavy when the cluster first starts without an
@@ -221,7 +209,6 @@ event connection_established(c: connection) &priority=5{
 					Broker::publish(Cluster::manager_topic,Known::host_found,[$ts = network_time(), $host = host, $name=hostname]);				
 				@endif
 			}timeout Known::dns_timeout{
-print("Test4 timeout");
 				event Known::host_found([$ts = network_time(), $host = host, $name="unknown"]);
 				@if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
 					Broker::publish(Cluster::manager_topic,Known::host_found,[$ts = network_time(), $host = host, $name=hostname]);				
