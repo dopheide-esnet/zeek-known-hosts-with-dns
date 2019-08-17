@@ -66,14 +66,18 @@ export {
 	const host_store_timeout = 15sec &redef;
 	const dns_timeout = 10sec &redef;
 
+	## The original purpose of this "with dns" version of known_hosts
+	## was to replace the DNS calls from ssh/interesting_hostnames
+	## In installations with a low amount of east<->west traffic
+	## or if you only plan to use known_hosts for ssh lookups,
+	## it may make sense to restrict lookups to only ssh connections
+	const ssh_auth_only = F &redef;
+
 	## The set of all known addresses to store for preventing duplicate 
 	## logging of addresses.  It can also be used from other scripts to 
 	## inspect if an address has been seen in use.
 	## Maintain the list of known hosts for 24 hours so that the existence
 	## of each individual address is logged each day.
-	##
-	## In cluster operation, this set is distributed uniformly across
-	## proxy nodes.
 	global hosts: table[addr] of string &create_expire=1day &redef;
 	global stored_hosts: table[addr] of string;
 
@@ -198,7 +202,8 @@ event Known::host_found(info: HostsInfo){
 	@endif
 }
 
-event connection_established(c: connection) &priority=5{
+function do_known_hosts(c: connection){
+
 	if ( c$orig$state != TCP_ESTABLISHED )
 		return;
 
@@ -228,4 +233,15 @@ event connection_established(c: connection) &priority=5{
 	}
 }
 
+event ssh_auth_successful(c: connection, auth_method_none: bool) &priority=5{
+        if(!ssh_auth_only)
+                return;
+	Known::do_known_hosts(c);
+}
+
+event connection_established(c: connection) &priority=5{
+        if(ssh_auth_only)
+                return;
+	Known::do_known_hosts(c);
+}
 
