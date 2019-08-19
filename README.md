@@ -19,6 +19,9 @@ it was decided to offer them as two separate packages.
 In our environment, with lots of automated processes ssh'ing into systems,
 the combination of these two policies reduces the asynch DNS calls by 99%.
 
+In some cases you may want to:
+redef Known::ssh_auth_only=T;
+
 Testing:
 After loading the policy, you can check the current list of known hosts using:
 
