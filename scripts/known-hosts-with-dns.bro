@@ -18,7 +18,6 @@
 global zeek_init: event();
 event bro_init()
 {
-    print("Entering zeek_init from bro_init");
     event zeek_init();
 }
 @endif
