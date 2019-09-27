@@ -79,7 +79,7 @@ export {
 	## inspect if an address has been seen in use.
 	## Maintain the list of known hosts for 24 hours so that the existence
 	## of each individual address is logged each day.
-	option hosts: table[addr] of string &create_expire=1day;
+	option hosts: table[addr] of string = { } &create_expire=1day;
 
 	global stored_hosts: table[addr] of string;
 
