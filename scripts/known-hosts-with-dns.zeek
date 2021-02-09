@@ -138,7 +138,7 @@ event zeek_init(){
 	@if ( ! Cluster::is_enabled() || Cluster::local_node_type() == Cluster::MANAGER )
 
 		when ( local r = Broker::keys(Known::host_store$store)){
-			if ( r$status == Broker::SUCCESS ){
+			if ( r$status == Broker::SUCCESS && r?$result ){
 
 				# Have to recast r$result as a set in order to work with it since
 				# it's a Broker::Data type.
@@ -148,7 +148,11 @@ event zeek_init(){
 						@if ( ! Cluster::is_enabled() )
 							Known::hosts[ip] = fmt("%s",res$result as string);
 						@else
-							Known::stored_hosts[ip] = fmt("%s",res$result as string);
+							{
+							# This converts to a string_set, but we assume there's only one
+							local k = res$result as string_set;
+							Known::stored_hosts[ip] = fmt("%s",k[0]);
+							}
 						@endif
 
 					}timeout Known::host_store_timeout{ }
@@ -186,7 +190,7 @@ event Known::host_found(info: HostsInfo){
 	# Add to the store and log
 		when ( local r = Broker::put_unique(Known::host_store$store, info$host,
 	                                    info$name, Known::host_store_expiry) ){
-			if ( r$status == Broker::SUCCESS ){
+			if ( r$status == Broker::SUCCESS && r?$result ){
 				if ( r$result as bool ){
 					Log::write(Known::HOSTS_LOG, info);
 				}
