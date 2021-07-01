@@ -1,6 +1,6 @@
-# @TEST-EXEC: bro -C -r $TRACES/known_host_test.pcap ../../../scripts %INPUT
+# @TEST-EXEC: zeek -C -r $TRACES/known_host_test.pcap ../../../scripts %INPUT
 # @TEST-EXEC: cat known_hosts.log |grep fields > fields.txt
-# @TEST-EXEC: bro-cut server_modes host < known_hosts.log > known_hosts.tmp && mv known_hosts.tmp known_hosts.log
+# @TEST-EXEC: zeek-cut server_modes host < known_hosts.log > known_hosts.tmp && mv known_hosts.tmp known_hosts.log
 # @TEST-EXEC: btest-diff known_hosts.log
 # @TEST-EXEC: btest-diff fields.txt
 
