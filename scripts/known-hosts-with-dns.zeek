@@ -149,8 +149,8 @@ event zeek_init(){
 							Known::hosts[ip] = fmt("%s",res$result as string);
 						@else
 							{
-							# This converts to a string_set, but we assume there's only one
-							local k = res$result as string_set;
+							# This converts to a string_vec, but we assume there's only one
+							local k = res$result as string_vec;
 							Known::stored_hosts[ip] = fmt("%s",k[0]);
 							}
 						@endif
