@@ -224,17 +224,19 @@ function do_known_hosts(c: connection){
 
 	# do the DNS lookup, this could get heavy when the cluster first starts without an
 	# existing known_hosts table
-			when ( local hostname = lookup_addr(host) ){
-				event Known::host_found([$ts = network_time(), $host = host, $name=hostname]);
-				@if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
-					Broker::publish(Cluster::manager_topic,Known::host_found,[$ts = network_time(), $host = host, $name=hostname]);				
-				@endif
-			}timeout Known::dns_timeout{
-				event Known::host_found([$ts = network_time(), $host = host, $name="unknown"]);
-				@if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
-					Broker::publish(Cluster::manager_topic,Known::host_found,[$ts = network_time(), $host = host, $name=hostname]);				
-				@endif
-			}
+                        when ( local hostname = lookup_addr(host) ){
+                                local info_rec: Known::HostsInfo = [$ts = network_time(), $host = host, $name=hostname];
+                                event Known::host_found(info_rec);
+                                @if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
+                                        Broker::publish(Cluster::manager_topic,Known::host_found,info_rec);
+                                @endif
+                        }timeout Known::dns_timeout{
+                                local info_recu: Known::HostsInfo = [$ts = network_time(), $host = host, $name="unknown"];
+                                event Known::host_found(info_recu);
+                                @if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
+                                        Broker::publish(Cluster::manager_topic,Known::host_found,info_recu);
+                                @endif
+                        }
 		}
 	}
 }
