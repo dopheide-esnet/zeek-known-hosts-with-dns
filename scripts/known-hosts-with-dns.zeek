@@ -143,8 +143,11 @@ event zeek_init(){
 				# Have to recast r$result as a set in order to work with it since
 				# it's a Broker::Data type.
 				for (ip in r$result as addr_set){
+@if ( Version::at_least("5.0") )
 					when [ip] ( local res = Broker::get(Known::host_store$store,ip)){
-
+@else
+                                        when ( local res = Broker::get(Known::host_store$store,ip)){
+@endif
 						@if ( ! Cluster::is_enabled() )
 							Known::hosts[ip] = fmt("%s",res$result as string);
 						@else
@@ -188,8 +191,13 @@ event Known::host_found(info: HostsInfo){
 		Log::write(Known::HOSTS_LOG, info);
 	}else{
 	# Add to the store and log
+@if ( Version::at_least("5.0") )
 		when [info] ( local r = Broker::put_unique(Known::host_store$store, info$host,
 	                                    info$name, Known::host_store_expiry) ){
+@else
+                when ( local r = Broker::put_unique(Known::host_store$store, info$host,
+                                            info$name, Known::host_store_expiry) ){
+@endif
 			if ( r$status == Broker::SUCCESS && r?$result ){
 				if ( r$result as bool ){
 					Log::write(Known::HOSTS_LOG, info);
@@ -224,7 +232,11 @@ function do_known_hosts(c: connection){
 
 	# do the DNS lookup, this could get heavy when the cluster first starts without an
 	# existing known_hosts table
+@if ( Version::at_least("5.0") )
                         when [host] ( local hostname = lookup_addr(host) ){
+@else
+                        when ( local hostname = lookup_addr(host) ){
+@endif
                                 local info_rec: Known::HostsInfo = [$ts = network_time(), $host = host, $name=hostname];
                                 event Known::host_found(info_rec);
                                 @if ( Cluster::is_enabled() && Cluster::local_node_type() == Cluster::WORKER )
