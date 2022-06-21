@@ -93,6 +93,9 @@ export {
 }
 
 # concept stolen from scripts/base/protocols/irc/dcc-send.bro
+# since this is only called by worker nodes, the manager may through an error:
+# "non-exported function does not have any callers (Known::known_relay_topic)"
+
 function known_relay_topic(): string{
 	local rval = Cluster::rr_topic(Cluster::proxy_pool, "known_rr_key");
 
