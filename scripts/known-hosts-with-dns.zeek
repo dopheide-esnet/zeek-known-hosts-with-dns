@@ -154,7 +154,6 @@ event zeek_init(){
                                                         {
                                                         # This converts to a string_vec, but we assume there's only one
                                                                 if (res$result is string){
-                                                                        print res$result;
                                                                         Known::stored_hosts[ip] = res$result as string;
                                                                 }else{
                                                                         local k = res$result as string_vec;
