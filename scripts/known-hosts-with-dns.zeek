@@ -151,11 +151,16 @@ event zeek_init(){
 						@if ( ! Cluster::is_enabled() )
 							Known::hosts[ip] = fmt("%s",res$result as string);
 						@else
-							{
-							# This converts to a string_vec, but we assume there's only one
-							local k = res$result as string_vec;
-							Known::stored_hosts[ip] = fmt("%s",k[0]);
-							}
+                                                        {
+                                                        # This converts to a string_vec, but we assume there's only one
+                                                                if (res$result is string){
+                                                                        print res$result;
+                                                                        Known::stored_hosts[ip] = res$result as string;
+                                                                }else{
+                                                                        local k = res$result as string_vec;
+                                                                        Known::stored_hosts[ip] = fmt("%s",k[0]);
+                                                                }
+                                                        }
 						@endif
 
 					}timeout Known::host_store_timeout{ }
